@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Utility Board Dispatcher Login - GridPulse{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+
+            <div class="card card-glass shadow-lg border-0 p-4 p-md-5 rounded-4">
+                <div class="text-center mb-4">
+                    <div class="brand-icon-box bg-dark text-warning p-3 rounded-circle mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.75rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="fw-extrabold text-dark mb-1">Utility Dispatch Desk</h3>
+                    <p class="text-secondary small">Municipal Electricity Board Operator Portal</p>
+                </div>
+
+                <form action="{{ url_for('admin_login') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">Staff Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="e.g. admin" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold">Access Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="bi bi-key"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm mb-3">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Dispatch Console
+                    </button>
+
+                    <!-- Demo credentials hint for convenience -->
+                    <div class="alert alert-secondary small p-2 text-center rounded-3 mb-0">
+                        <strong>Evaluation Credentials:</strong><br>
+                        Username: <code class="text-primary">admin</code> &bull; Password: <code class="text-primary">gridadmin2026</code>
+                    </div>
+                </form>
+            </div>
+
+            <div class="text-center mt-3">
+                <a href="{{ url_for('index') }}" class="text-secondary small text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i> Return to Resident Public Portal
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

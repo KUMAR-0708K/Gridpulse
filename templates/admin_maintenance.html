@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Planned Outages & Maintenance Schedule - GridPulse{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-calendar-event text-info"></i> Planned Outages & Grid Maintenance
+            </h2>
+            <p class="text-secondary small mb-0">Schedule planned power cuts for line clearing, busbar overhaul, or transformer upgrades with advance notice to citizens.</p>
+        </div>
+
+        <button type="button" class="btn btn-primary fw-semibold btn-sm" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">
+            <i class="bi bi-plus-circle me-1"></i> Schedule Maintenance Shutdown
+        </button>
+    </div>
+
+    <!-- Scheduled Maintenance Table -->
+    <div class="card card-glass shadow-sm p-4 mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light text-uppercase">
+                    <tr>
+                        <th>Locality / Feeder</th>
+                        <th>Work Description</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Affected Streets</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in maintenance_list %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ m.locality_name }}</strong>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ m.substation or 'Regional Substation' }}</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ m.title }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ m.reason }}</div>
+                            </td>
+                            <td class="font-mono text-primary fw-semibold">{{ m.start_time }}</td>
+                            <td class="font-mono text-muted">{{ m.end_time }}</td>
+                            <td>{{ m.affected_areas }}</td>
+                            <td>
+                                <span class="badge {% if m.status == 'SCHEDULED' %}bg-warning-subtle text-warning-emphasis{% elif m.status == 'IN_PROGRESS' %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+                                    {{ m.status }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% if m.status != 'COMPLETED' %}
+                                    <form action="{{ url_for('admin_maintenance') }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="complete">
+                                        <input type="hidden" name="maintenance_id" value="{{ m.id }}">
+                                        <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2">Mark Completed</button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-success small"><i class="bi bi-check2"></i> Finished</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No scheduled maintenance records found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Schedule Modal -->
+<div class="modal fade" id="addMaintenanceModal" tabindex="-1" aria-labelledby="addMaintenanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="addMaintenanceModalLabel"><i class="bi bi-calendar-plus text-info me-2"></i>Schedule Planned Power Shutdown</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin_maintenance') }}" method="POST">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Target Locality / Ward <span class="text-danger">*</span></label>
+                        <select name="locality_id" class="form-select" required>
+                            <option value="" disabled selected>Select locality...</option>
+                            {% for loc in localities %}
+                                <option value="{{ loc.id }}">{{ loc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Title / Activity Name <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. 11kV Feeder Tree Trimming & Conductor Replacement" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Substation / Line</label>
+                        <input type="text" name="substation" class="form-control" placeholder="e.g. Koramangala 66kV Substation Feeder 4">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Start Time <span class="text-danger">*</span></label>
+                            <input type="text" name="start_time" class="form-control font-mono" placeholder="2026-10-10 10:00 AM" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">End Time <span class="text-danger">*</span></label>
+                            <input type="text" name="end_time" class="form-control font-mono" placeholder="2026-10-10 02:00 PM" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Affected Streets / Landmarks</label>
+                        <input type="text" name="affected_areas" class="form-control" placeholder="e.g. 1st to 4th Cross, Main Road, Block A" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Technical Reason</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="e.g. Preventive monsoon maintenance and insulator replacement..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Publish Maintenance Notice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

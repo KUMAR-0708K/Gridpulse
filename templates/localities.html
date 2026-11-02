@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Locality Grid Status & Maintenance - GridPulse{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-grid-3x3-gap-fill text-warning"></i> Locality Grid Health & Monitoring
+            </h2>
+            <p class="text-secondary small mb-0">Check live feeder status, active repairs, and scheduled maintenance across municipal wards.</p>
+        </div>
+
+        <a href="{{ url_for('report_outage') }}" class="btn btn-warning fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Report Locality Outage
+        </a>
+    </div>
+
+    <!-- Locality Grid Cards -->
+    <div class="row g-3 mb-5">
+        {% for loc in localities %}
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 locality-card border-0 shadow-sm p-3 bg-white position-relative">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-dark font-mono text-warning">{{ loc.code }}</span>
+                        {% if loc.status == 'NORMAL' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle-fill me-1"></i> Normal
+                            </span>
+                        {% elif loc.status == 'OUTAGE_ACTIVE' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                <i class="bi bi-lightning-slash me-1"></i> Outage Active
+                            </span>
+                        {% elif loc.status == 'DEGRADED' %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                <i class="bi bi-exclamation-circle-fill me-1"></i> Degraded
+                            </span>
+                        {% else %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                <i class="bi bi-tools me-1"></i> Maintenance
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-1">{{ loc.name }}</h5>
+                    <p class="small text-muted mb-2"><i class="bi bi-lightning-charge"></i> {{ loc.substation_name }}</p>
+
+                    <div class="bg-light p-2 rounded-2 mb-3 small">
+                        <div class="d-flex justify-content-between text-secondary mb-1">
+                            <span>Connections:</span>
+                            <span class="fw-bold text-dark">{{ loc.total_connections }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-secondary mb-1">
+                            <span>Active Outages:</span>
+                            <span class="fw-bold {% if loc.active_outages > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ loc.active_outages }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between text-secondary">
+                            <span>Households Impacted:</span>
+                            <span class="fw-bold text-dark">~{{ loc.affected_households }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                        <div class="small text-muted" style="font-size: 0.75rem;">
+                            <div>Officer: <strong>{{ loc.contact_officer.split(' ')[0] if loc.contact_officer else 'AE Desk' }}</strong></div>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" data-bs-toggle="modal" data-bs-target="#subscribeModal" data-loc-id="{{ loc.id }}" data-loc-name="{{ loc.name }}">
+                            <i class="bi bi-bell me-1"></i> Alerts
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Scheduled Maintenance Shutdown Section -->
+    <div class="card card-glass shadow-sm p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-check text-info me-2"></i>Upcoming Planned Maintenance Outages</h4>
+                <p class="text-secondary small mb-0">Announcements regarding scheduled grid upgrades, transformer overhauls, and transmission line pruning.</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase">
+                    <tr>
+                        <th>Locality / Feeder</th>
+                        <th>Work Description</th>
+                        <th>Schedule Window</th>
+                        <th>Streets Affected</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in maintenance %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ m.locality_name }}</strong>
+                                <div class="small text-muted">{{ m.substation }}</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ m.title }}</div>
+                                <div class="small text-muted">{{ m.reason }}</div>
+                            </td>
+                            <td>
+                                <div class="small font-mono fw-semibold text-primary"><i class="bi bi-clock me-1"></i>{{ m.start_time }}</div>
+                                <div class="small font-mono text-muted">to {{ m.end_time }}</div>
+                            </td>
+                            <td class="small">{{ m.affected_areas }}</td>
+                            <td>
+                                <span class="badge {% if m.status == 'SCHEDULED' %}bg-warning-subtle text-warning-emphasis{% elif m.status == 'IN_PROGRESS' %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+                                    {{ m.status }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No scheduled maintenance events logged at this time.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Alert Subscription Modal -->
+    <div class="modal fade" id="subscribeModal" tabindex="-1" aria-labelledby="subscribeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="subscribeModalLabel"><i class="bi bi-bell-fill text-warning me-2"></i>Subscribe to Ward Alerts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('subscribe_alerts') }}" method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="locality_id" id="modalLocId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Locality Selected</label>
+                            <input type="text" id="modalLocName" class="form-control fw-bold bg-light" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Preferred Notification Channel</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="contact_type" id="notifySms" value="SMS" checked>
+                                    <label class="form-check-label" for="notifySms">SMS Mobile Alert</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="contact_type" id="notifyEmail" value="EMAIL">
+                                    <label class="form-check-label" for="notifyEmail">Email Notice</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mobile Number or Email Address</label>
+                            <input type="text" name="contact_value" class="form-control" placeholder="+91 98450 12345 or user@domain.com" required>
+                            <div class="form-text">You will only receive alerts about immediate outages and power restorations in this ward.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold">Subscribe Now</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const subscribeModal = document.getElementById("subscribeModal");
+    if (subscribeModal) {
+        subscribeModal.addEventListener("show.bs.modal", function (event) {
+            const button = event.relatedTarget;
+            const locId = button.getAttribute("data-loc-id");
+            const locName = button.getAttribute("data-loc-name");
+
+            subscribeModal.querySelector("#modalLocId").value = locId;
+            subscribeModal.querySelector("#modalLocName").value = locName;
+        });
+    }
+});
+</script>
+{% endblock %}

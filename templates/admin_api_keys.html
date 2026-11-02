@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys & Integrations - GridPulse Dispatch Desk{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 mt-4 mb-5">
+
+    <!-- Top Dispatch Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}" class="text-decoration-none text-muted">Operations Desk</a></li>
+                    <li class="breadcrumb-item active text-warning" aria-current="page">API Keys & Integrations</li>
+                </ol>
+            </nav>
+            <h2 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-key-fill text-warning"></i> API Keys & Integrations Management
+            </h2>
+            <p class="text-secondary small mb-0">
+                Securely authenticate external SCADA telemetry systems, smart grid IoT sensors, and third-party municipal civic dashboards with <code>X-API-Key</code> authorization.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-warning text-dark fw-bold btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#generateKeyModal">
+                <i class="bi bi-plus-circle-fill"></i> Generate New API Key
+            </button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-speedometer2"></i> Operations Desk
+            </a>
+            <a href="#apiDocumentation" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-file-code"></i> API Docs
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert for Newly Generated Key -->
+    {% if newly_created_key %}
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-2 border-success mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <div class="fs-2 text-success"><i class="bi bi-shield-check"></i></div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading fw-bold mb-1">New API Key Created: {{ newly_created_key.key_name }}</h5>
+                <p class="small mb-2 text-dark">
+                    Make sure to copy your API key now. For security purposes, this full unmasked token cannot be displayed again.
+                </p>
+                <div class="input-group mb-2" style="max-width: 600px;">
+                    <input type="text" class="form-control font-mono fw-bold bg-white text-dark" id="newlyCreatedKeyInput" value="{{ newly_created_key.api_key }}" readonly>
+                    <button class="btn btn-success fw-semibold copy-btn" type="button" onclick="copyToClipboard('newlyCreatedKeyInput', this)">
+                        <i class="bi bi-clipboard me-1"></i> Copy Key
+                    </button>
+                </div>
+                <div class="small text-muted">
+                    <span class="badge bg-secondary me-1">Role: {{ newly_created_key.role }}</span>
+                    <span>Ready for immediate authentication via header <code>X-API-Key: {{ newly_created_key.api_key }}</code></span>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Stat KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card card-crews p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-uppercase small fw-bold text-secondary">Total Configured Keys</div>
+                        <h2 class="fw-bold text-primary mb-0 mt-1">{{ total_keys }}</h2>
+                    </div>
+                    <div class="fs-1 text-primary-subtle"><i class="bi bi-key"></i></div>
+                </div>
+                <div class="small text-muted mt-2">Registered client integrations</div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card card-localities p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-uppercase small fw-bold text-secondary">Active Keys</div>
+                        <h2 class="fw-bold text-success mb-0 mt-1">{{ active_keys }}</h2>
+                    </div>
+                    <div class="fs-1 text-success-subtle"><i class="bi bi-check-circle-fill"></i></div>
+                </div>
+                <div class="small text-success mt-2">
+                    <i class="bi bi-broadcast me-1"></i>{{ active_keys }} of {{ total_keys }} accepting live requests
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card card-outages p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-uppercase small fw-bold text-secondary">Revoked / Suspended</div>
+                        <h2 class="fw-bold text-danger mb-0 mt-1">{{ revoked_keys }}</h2>
+                    </div>
+                    <div class="fs-1 text-danger-subtle"><i class="bi bi-slash-circle-fill"></i></div>
+                </div>
+                <div class="small text-muted mt-2">Blocked from accessing endpoints</div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card card-households p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-uppercase small fw-bold text-secondary">Read/Write Ingestion</div>
+                        <h2 class="fw-bold text-warning-emphasis mb-0 mt-1">{{ rw_keys }}</h2>
+                    </div>
+                    <div class="fs-1 text-warning-subtle"><i class="bi bi-cpu-fill"></i></div>
+                </div>
+                <div class="small text-muted mt-2">SCADA & IoT automated report ingestion</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Env Key Notice -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-shield-lock-fill text-primary fs-4"></i>
+                <div>
+                    <strong class="d-block text-dark">Master Environment API Key</strong>
+                    <span class="small text-muted">Configured via <code>.env</code> file (<code>GRIDPULSE_API_KEY</code>). Used for local automated tasks and dev telemetry.</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <code class="px-2 py-1 bg-white border rounded font-mono text-dark" id="masterKeyText">{{ master_api_key }}</code>
+                <button class="btn btn-outline-secondary btn-sm copy-btn" type="button" onclick="navigator.clipboard.writeText('{{ master_api_key }}'); this.innerHTML='<i class=\'bi bi-check2\'></i> Copied!'; setTimeout(() => this.innerHTML='<i class=\'bi bi-clipboard\'></i> Copy', 2000);">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Keys Table Card -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-shield-shaded text-primary"></i> Registered API Integration Keys
+            </h5>
+            <span class="badge bg-light text-dark border">{{ api_keys|length }} Keys Registered</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small text-uppercase">
+                    <tr>
+                        <th style="width: 25%;">Integration Client</th>
+                        <th style="width: 30%;">API Key Token</th>
+                        <th style="width: 12%;">Permissions</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 13%;">Last Used</th>
+                        <th style="width: 10%;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key in api_keys %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark">{{ key.key_name }}</div>
+                            <div class="small text-muted">
+                                Created {{ key.created_at }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="font-mono text-secondary small key-display" id="keySpan{{ key.id }}" data-full-key="{{ key.api_key }}" data-masked="{{ key.api_key[:8] }}...{{ key.api_key[-4:] }}">
+                                    {{ key.api_key[:8] }}...{{ key.api_key[-4:] }}
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 border-0" title="Toggle Show/Mask" onclick="toggleKeyVisibility({{ key.id }})">
+                                    <i class="bi bi-eye" id="eyeIcon{{ key.id }}"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 border-0" title="Copy Key" onclick="copyKeyText('{{ key.api_key }}', this)">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td>
+                            {% if key.role in ['read_write', 'admin'] %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                    <i class="bi bi-pencil-square me-1"></i>Read & Write
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border">
+                                    <i class="bi bi-eye me-1"></i>Read-Only
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if key.is_active == 1 %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                    <span class="spinner-grow spinner-grow-sm text-success" style="width: 0.45rem; height: 0.45rem;" role="status"></span> Active
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="bi bi-x-circle me-1"></i>Revoked
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if key.last_used_at %}
+                                <span class="small text-dark" title="{{ key.last_used_at }}">{{ key.last_used_at }}</span>
+                            {% else %}
+                                <span class="small text-muted italic">Never used</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                <form action="{{ url_for('admin_api_keys') }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="key_id" value="{{ key.id }}">
+                                    {% if key.is_active == 1 %}
+                                        <button type="submit" class="btn btn-sm btn-outline-warning text-dark py-1 px-2" title="Revoke/Deactivate Key">
+                                            <i class="bi bi-pause-circle"></i> Revoke
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success py-1 px-2" title="Reactivate Key">
+                                            <i class="bi bi-play-circle"></i> Activate
+                                        </button>
+                                    {% endif %}
+                                </form>
+
+                                <form action="{{ url_for('admin_api_keys') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to permanently delete this API key? External clients using it will lose access immediately.');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="key_id" value="{{ key.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Delete API Key">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- API Documentation & Integration Quickstart -->
+    <div class="card shadow-sm border-0" id="apiDocumentation">
+        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-code-slash text-warning"></i> GridPulse REST API Integration Guide
+            </h5>
+            <span class="badge bg-warning text-dark font-mono">v1.2 REST</span>
+        </div>
+        <div class="card-body p-4">
+            <h6 class="fw-bold text-dark mb-2">Authentication Protocol</h6>
+            <p class="text-secondary small mb-3">
+                All requests to protected <code>/api/*</code> endpoints must include a valid active API key. You can authenticate using any of the following methods:
+            </p>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <span class="badge bg-primary mb-2">Standard Header (Recommended)</span>
+                        <div class="font-mono small bg-white p-2 border rounded text-dark">
+                            X-API-Key: &lt;your_key&gt;
+                        </div>
+                        <div class="text-muted small mt-2">Standard custom HTTP header for API gateways.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <span class="badge bg-info text-dark mb-2">Bearer Authorization</span>
+                        <div class="font-mono small bg-white p-2 border rounded text-dark">
+                            Authorization: Bearer &lt;your_key&gt;
+                        </div>
+                        <div class="text-muted small mt-2">Compatible with standard OAuth2 / JWT client libraries.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <span class="badge bg-secondary mb-2">Query Parameter</span>
+                        <div class="font-mono small bg-white p-2 border rounded text-dark">
+                            ?api_key=&lt;your_key&gt;
+                        </div>
+                        <div class="text-muted small mt-2">Convenient for quick testing in web browsers or WebHooks.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Examples Tabs -->
+            <ul class="nav nav-tabs mb-3" id="apiDocsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="curl-tab" data-bs-toggle="tab" data-bs-target="#tabCurl" type="button" role="tab"><i class="bi bi-terminal me-1"></i> cURL</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="python-tab" data-bs-toggle="tab" data-bs-target="#tabPython" type="button" role="tab"><i class="bi bi-filetype-py me-1"></i> Python (requests)</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="js-tab" data-bs-toggle="tab" data-bs-target="#tabJs" type="button" role="tab"><i class="bi bi-filetype-js me-1"></i> JavaScript (fetch)</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="apiDocsContent">
+                <!-- cURL Tab -->
+                <div class="tab-pane fade show active" id="tabCurl" role="tabpanel">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">1. Verify API Key Authentication</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded font-mono small mb-0"><code>curl -X GET http://127.0.0.1:5000/api/auth/verify \
+  -H "X-API-Key: {{ master_api_key }}"</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">2. Retrieve Active Grid Outages</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded font-mono small mb-0"><code>curl -X GET "http://127.0.0.1:5000/api/outages?status=active" \
+  -H "X-API-Key: {{ master_api_key }}"</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">3. Post New Incident from SCADA / Smart Meter Gateway</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded font-mono small mb-0"><code>curl -X POST http://127.0.0.1:5000/api/outages \
+  -H "X-API-Key: {{ master_api_key }}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "locality_id": 1,
+    "consumer_name": "SCADA Substation Feeder 4A",
+    "consumer_phone": "+91 94481 00912",
+    "address": "12th Cross, Sector 2",
+    "landmark": "Near Feeder Busbar 3",
+    "outage_type": "Distribution Transformer Failure",
+    "severity": "CRITICAL",
+    "description": "Overcurrent telemetry breaker trip detected.",
+    "affected_households": 120
+  }'</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Python Tab -->
+                <div class="tab-pane fade" id="tabPython" role="tabpanel">
+                    <pre class="bg-dark text-light p-3 rounded font-mono small mb-0"><code>import requests
+
+API_KEY = "{{ master_api_key }}"
+BASE_URL = "http://127.0.0.1:5000"
+
+headers = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+# 1. Fetch Outages
+response = requests.get(f"{BASE_URL}/api/outages", headers=headers)
+print("Outages:", response.json())
+
+# 2. Ingest Grid Fault Telemetry
+payload = {
+    "locality_id": 1,
+    "outage_type": "Distribution Transformer Failure",
+    "severity": "CRITICAL",
+    "description": "Automatic sensor telemetry trip.",
+    "affected_households": 95
+}
+post_resp = requests.post(f"{BASE_URL}/api/outages", json=payload, headers=headers)
+print("Ticket Created:", post_resp.json())</code></pre>
+                </div>
+
+                <!-- JS Tab -->
+                <div class="tab-pane fade" id="tabJs" role="tabpanel">
+                    <pre class="bg-dark text-light p-3 rounded font-mono small mb-0"><code>const API_KEY = "{{ master_api_key }}";
+
+// Fetch active outages with API Key Header
+fetch("http://127.0.0.1:5000/api/outages?status=active", {
+    headers: {
+        "X-API-Key": API_KEY,
+        "Content-Type": "application/json"
+    }
+})
+.then(res =&gt; res.json())
+.then(data =&gt; console.log("GridPulse Outages:", data))
+.catch(err =&gt; console.error("Error:", err));</code></pre>
+                </div>
+            </div>
+
+            <!-- Endpoint Directory Table -->
+            <h6 class="fw-bold text-dark mt-4 mb-2">Endpoint Reference Matrix</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Role Required</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge bg-success">GET</span></td>
+                            <td><code>/api/auth/verify</code></td>
+                            <td><span class="badge bg-secondary">read_only</span></td>
+                            <td>Validate API key and fetch key owner metadata.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success">GET</span></td>
+                            <td><code>/api/outages</code></td>
+                            <td><span class="badge bg-secondary">read_only</span></td>
+                            <td>List outages with filters: <code>?status=active</code>, <code>?locality_id=1</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-primary">POST</span></td>
+                            <td><code>/api/outages</code></td>
+                            <td><span class="badge bg-primary">read_write</span></td>
+                            <td>Automated fault intake from SCADA/smart meters. Creates ticket.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success">GET</span></td>
+                            <td><code>/api/outages/&lt;ticket_no&gt;</code></td>
+                            <td><span class="badge bg-secondary">read_only</span></td>
+                            <td>Full ticket details, assigned crew, and audit trail history.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success">GET</span></td>
+                            <td><code>/api/localities</code></td>
+                            <td><span class="badge bg-secondary">read_only</span></td>
+                            <td>List monitored wards, substations, and active outage counts.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Generate New API Key -->
+<div class="modal fade" id="generateKeyModal" tabindex="-1" aria-labelledby="generateKeyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('admin_api_keys') }}" method="POST">
+                <input type="hidden" name="action" value="generate">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold" id="generateKeyModalLabel">
+                        <i class="bi bi-key-fill text-warning me-1"></i> Generate New API Key
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="keyName" class="form-label fw-bold small text-secondary">Integration Name / Client Target *</label>
+                        <input type="text" class="form-control" id="keyName" name="key_name" placeholder="e.g., Feeder SCADA Unit 4, Lineman Mobile App, City GIS" required>
+                        <div class="form-text small">A descriptive label identifying who or what service will use this key.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Access Permission Role *</label>
+                        <div class="form-check p-3 border rounded mb-2 bg-light">
+                            <input class="form-check-input" type="radio" name="role" id="roleReadWrite" value="read_write" checked>
+                            <label class="form-check-label fw-semibold text-dark" for="roleReadWrite">
+                                <i class="bi bi-pencil-square text-primary me-1"></i> Read & Write (Full Ingestion)
+                            </label>
+                            <div class="small text-muted ps-4">Can query outages and programmatically submit new fault reports via <code>POST /api/outages</code>.</div>
+                        </div>
+                        <div class="form-check p-3 border rounded bg-light">
+                            <input class="form-check-input" type="radio" name="role" id="roleReadOnly" value="read_only">
+                            <label class="form-check-label fw-semibold text-dark" for="roleReadOnly">
+                                <i class="bi bi-eye text-secondary me-1"></i> Read-Only (Public Data)
+                            </label>
+                            <div class="small text-muted ps-4">Can only query existing outage markers, ticket progress, and locality metrics.</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-0 small d-flex gap-2 align-items-center mb-0">
+                        <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+                        <div>The key token will be cryptographically generated with the prefix <code>gp_live_...</code>.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">
+                        <i class="bi bi-check-circle-fill me-1"></i> Generate API Key
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleKeyVisibility(id) {
+    const span = document.getElementById("keySpan" + id);
+    const icon = document.getElementById("eyeIcon" + id);
+    if (!span || !icon) return;
+
+    if (span.textContent.includes("...")) {
+        span.textContent = span.getAttribute("data-full-key");
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
+    } else {
+        span.textContent = span.getAttribute("data-masked");
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+    }
+}
+
+function copyKeyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+        setTimeout(() => { btn.innerHTML = original; }, 1800);
+    }).catch(err => console.error("Clipboard copy failed:", err));
+}
+
+function copyToClipboard(elementId, btn) {
+    const input = document.getElementById(elementId);
+    if (!input) return;
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Copied!';
+        btn.classList.remove("btn-success");
+        btn.classList.add("btn-dark");
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove("btn-dark");
+            btn.classList.add("btn-success");
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

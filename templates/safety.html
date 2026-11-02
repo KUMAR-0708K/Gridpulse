@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Electrical Safety & Emergency Helplines - GridPulse{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="card bg-dark text-white p-4 p-md-5 rounded-4 shadow-sm mb-4 border-0">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-danger text-white fw-bold px-3 py-1 mb-3">
+                    <i class="bi bi-shield-fill-exclamation me-1"></i> PUBLIC SAFETY DIRECTIVE
+                </span>
+                <h2 class="display-6 fw-bold mb-3">Electrical Hazard Guidelines & Emergency Protocol</h2>
+                <p class="text-white-50 lead mb-0">
+                    High voltage overhead lines carry between 11,000 Volts (11kV) and 66,000 Volts. In case of storms, fallen trees, or transformer failures, follow these life-saving procedures.
+                </p>
+            </div>
+            <div class="col-lg-4 text-center mt-3 mt-lg-0">
+                <div class="bg-slate-800 p-3 rounded-3 border border-secondary text-start">
+                    <div class="fw-bold text-warning small mb-1 text-uppercase">Emergency Hotline</div>
+                    <div class="display-6 fw-bold text-white mb-2 font-mono">1912</div>
+                    <p class="text-white-50 small mb-2">Toll-free 24x7 Control Room for live wire accidents & transformer fires.</p>
+                    <a href="tel:1912" class="btn btn-danger btn-sm w-100 fw-bold">
+                        <i class="bi bi-telephone-outbound-fill me-1"></i> Call 1912 Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Core Safety Rule Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm p-4 bg-white rounded-3 border-top border-4 border-danger">
+                <div class="text-danger fs-1 mb-2"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <h5 class="fw-bold text-dark">Downed Power Lines</h5>
+                <p class="small text-secondary mb-3">
+                    Always assume downed lines are energized. Stay at least <strong>35 feet (10 meters)</strong> away. Do not touch wet ground, puddles, or metallic fences touching the line.
+                </p>
+                <div class="alert alert-danger py-1 px-2 small mb-0">
+                    <strong>Rule:</strong> Shuffle feet without lifting if tingling is felt.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm p-4 bg-white rounded-3 border-top border-4 border-warning">
+                <div class="text-warning-emphasis fs-1 mb-2"><i class="bi bi-fire"></i></div>
+                <h5 class="fw-bold text-dark">Electrical Fires</h5>
+                <p class="small text-secondary mb-3">
+                    <strong>NEVER throw water</strong> on an electrical fire. Water conducts electricity and causes fatal shock. Use Class C (CO2 or Dry Chemical Powder) extinguishers only.
+                </p>
+                <div class="alert alert-warning py-1 px-2 small mb-0">
+                    <strong>Action:</strong> Disconnect main breaker if safe to approach.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm p-4 bg-white rounded-3 border-top border-4 border-primary">
+                <div class="text-primary fs-1 mb-2"><i class="bi bi-gear-wide-connected"></i></div>
+                <h5 class="fw-bold text-dark">Generator Safety</h5>
+                <p class="small text-secondary mb-3">
+                    Never run portable fuel generators indoors or in garages due to lethal Carbon Monoxide. Never "backfeed" into home wall sockets—it can electrocute utility linemen working on the line.
+                </p>
+                <div class="alert alert-info py-1 px-2 small mb-0">
+                    <strong>Must have:</strong> Certified transfer switch.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm p-4 bg-white rounded-3 border-top border-4 border-success">
+                <div class="text-success fs-1 mb-2"><i class="bi bi-shield-check"></i></div>
+                <h5 class="fw-bold text-dark">Surge Protection</h5>
+                <p class="small text-secondary mb-3">
+                    When power cuts occur, immediately switch off air conditioners, computers, microwaves, and motors. When power is restored, sudden voltage spikes can damage sensitive electronics.
+                </p>
+                <div class="alert alert-success py-1 px-2 small mb-0">
+                    <strong>Tip:</strong> Wait 5 minutes after restoration before restarting ACs.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Helplines Directory Table -->
+    <div class="card card-glass shadow-sm p-4 mb-4">
+        <h4 class="fw-bold text-dark mb-3"><i class="bi bi-telephone-fill text-danger me-2"></i>Emergency Helplines Directory</h4>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase">
+                    <tr>
+                        <th>Emergency Agency</th>
+                        <th>Helpline Number</th>
+                        <th>Availability</th>
+                        <th>When to Call</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Municipal Electricity Board Control Room</strong>
+                            <div class="small text-muted">Feeder Tripping & Lines</div>
+                        </td>
+                        <td><span class="badge bg-danger fs-6 font-mono">1912</span></td>
+                        <td><span class="badge bg-success-subtle text-success">24 Hours / 365 Days</span></td>
+                        <td class="small">Snapped wires, transformer explosions, locality blackouts.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Fire & Rescue Services</strong>
+                            <div class="small text-muted">Electrical Fire Hazards</div>
+                        </td>
+                        <td><span class="badge bg-warning text-dark fs-6 font-mono">101</span></td>
+                        <td><span class="badge bg-success-subtle text-success">24 Hours / 365 Days</span></td>
+                        <td class="small">Active sparking, smoke, flame from transformer or pole.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Ambulance Emergency Medical Response</strong>
+                            <div class="small text-muted">Electric Shock Victims</div>
+                        </td>
+                        <td><span class="badge bg-info text-dark fs-6 font-mono">108</span></td>
+                        <td><span class="badge bg-success-subtle text-success">24 Hours / 365 Days</span></td>
+                        <td class="small">Electrocution injury, burns, unconscious victim.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>National Integrated Emergency System</strong>
+                            <div class="small text-muted">Police & Disaster Management</div>
+                        </td>
+                        <td><span class="badge bg-dark text-white fs-6 font-mono">112</span></td>
+                        <td><span class="badge bg-success-subtle text-success">24 Hours / 365 Days</span></td>
+                        <td class="small">Severe storm aftermath, fallen high-tension towers.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

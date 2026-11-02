@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Report a Power Outage - GridPulse Utility Portal{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Report Outage</li>
+                </ol>
+            </nav>
+
+            <div class="card card-glass shadow-sm p-4 p-md-5 mb-5">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="brand-icon-box bg-danger-subtle text-danger p-3 rounded-3 fs-3">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-extrabold text-dark mb-1">Report a Power Outage</h2>
+                        <p class="text-secondary small mb-0">
+                            Notify the Municipal Electricity Board control room. Your report will be assigned to the on-duty feeder lineman crew immediately.
+                        </p>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('report_outage') }}" method="POST" enctype="multipart/form-data" id="reportForm">
+                    
+                    <!-- Section 1: Locality & Area Selection -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-circle">1</span> Locality & Substation Zone
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="locality_id" class="form-label fw-semibold">Ward / Locality <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-lg" id="locality_id" name="locality_id" required>
+                                    <option value="" disabled selected>Select your locality or ward...</option>
+                                    {% for loc in localities %}
+                                        <option value="{{ loc.id }}" data-lat="{{ loc.lat }}" data-lng="{{ loc.lng }}" data-substation="{{ loc.substation_name }}">
+                                            {{ loc.name }} ({{ loc.code }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Selecting your locality centers the map and assigns the regional substation.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-muted">Feeder Substation</label>
+                                <div class="form-control form-control-lg bg-light text-secondary d-flex align-items-center gap-2" id="substationPreview">
+                                    <i class="bi bi-lightning-charge text-warning"></i>
+                                    <span id="substationText">Please select a locality above</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Contact Details -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-circle">2</span> Consumer & Contact Information
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="consumer_name" class="form-label fw-semibold">Your Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="consumer_name" name="consumer_name" placeholder="e.g. Ramesh Kumar" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="consumer_phone" class="form-label fw-semibold">Mobile Phone Number <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="consumer_phone" name="consumer_phone" placeholder="e.g. +91 98450 12345" required>
+                                <div class="form-text text-muted">Used to send live restoration SMS alerts.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="consumer_email" class="form-label fw-semibold">Email Address <span class="text-muted">(Optional)</span></label>
+                                <input type="email" class="form-control" id="consumer_email" name="consumer_email" placeholder="name@domain.com">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="account_or_meter_no" class="form-label fw-semibold">Consumer / Meter Number <span class="text-muted">(Optional)</span></label>
+                                <input type="text" class="form-control font-mono" id="account_or_meter_no" name="account_or_meter_no" placeholder="e.g. MTR-884910">
+                            </div>
+
+                            <div class="col-md-8">
+                                <label for="address" class="form-label fw-semibold">Street Address / House / Building <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="address" name="address" placeholder="e.g. #45, 3rd Cross, 14th Main Road" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="landmark" class="form-label fw-semibold">Nearest Landmark <span class="text-muted">(Optional)</span></label>
+                                <input type="text" class="form-control" id="landmark" name="landmark" placeholder="e.g. Opposite Water Tank, Near Metro Station">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="affected_households" class="form-label fw-semibold">Estimated Affected Households</label>
+                                <select class="form-select" id="affected_households" name="affected_households">
+                                    <option value="1">Just my house / flat (1 connection)</option>
+                                    <option value="10" selected>Immediate neighbors / apartment wing (~5 to 15)</option>
+                                    <option value="50">Entire street / lane (~20 to 50)</option>
+                                    <option value="200">Entire block or neighborhood (100+)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Outage Incident Specifics -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-circle">3</span> Incident Details & Hazard Level
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="outage_type" class="form-label fw-semibold">Nature of Problem <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-lg" id="outage_type" name="outage_type" required>
+                                    <option value="" disabled selected>Select the type of outage...</option>
+                                    <option value="Total Blackout">Total Blackout (Complete power failure)</option>
+                                    <option value="Fallen Tree on Overhead Line">Fallen Tree / Branch on Power Line</option>
+                                    <option value="Wire Snapped / Broken Pole">Wire Snapped / Broken Electric Pole</option>
+                                    <option value="Distribution Transformer Failure">Transformer Blast / Heavy Sparks / Oil Leak</option>
+                                    <option value="Phase Imbalance / Low Voltage">Single Phase Cut / Dim Lights / Low Voltage</option>
+                                    <option value="Sparking / Fire Hazard">Severe Sparking / Smoke from Box</option>
+                                    <option value="Frequent Tripping">Frequent Power Tripping & Surges</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Severity / Hazard Level <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <div class="severity-card-option flex-fill" data-sev="CRITICAL">
+                                        <div class="form-check p-0 m-0">
+                                            <input class="form-check-input d-none" type="radio" name="severity" id="sev_critical" value="CRITICAL">
+                                            <label class="form-check-label fw-bold text-danger w-100 cursor-pointer" for="sev_critical">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <i class="bi bi-fire fs-5"></i> <span>Critical</span>
+                                                </div>
+                                                <div class="text-muted fw-normal" style="font-size: 0.72rem;">Sparks, fire, downed wire</div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="severity-card-option active flex-fill" data-sev="HIGH">
+                                        <div class="form-check p-0 m-0">
+                                            <input class="form-check-input d-none" type="radio" name="severity" id="sev_high" value="HIGH" checked>
+                                            <label class="form-check-label fw-bold text-warning-emphasis w-100 cursor-pointer" for="sev_high">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <i class="bi bi-exclamation-diamond fs-5"></i> <span>High</span>
+                                                </div>
+                                                <div class="text-muted fw-normal" style="font-size: 0.72rem;">Full street blackout</div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="severity-card-option flex-fill" data-sev="MEDIUM">
+                                        <div class="form-check p-0 m-0">
+                                            <input class="form-check-input d-none" type="radio" name="severity" id="sev_medium" value="MEDIUM">
+                                            <label class="form-check-label fw-bold text-primary w-100 cursor-pointer" for="sev_medium">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <i class="bi bi-info-circle fs-5"></i> <span>Medium</span>
+                                                </div>
+                                                <div class="text-muted fw-normal" style="font-size: 0.72rem;">Single phase/dim voltage</div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="description" class="form-label fw-semibold">Detailed Description <span class="text-muted">(Optional)</span></label>
+                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe symptoms, whether you heard an explosion, or if wires are dangling onto the roadway..."></textarea>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label for="photo" class="form-label fw-semibold">Upload Photo of Fault / Hazard <span class="text-muted">(Optional)</span></label>
+                                <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
+                                <div class="form-text">Attach a photo of broken pole, transformer smoke, or tree branch if safe to take from a distance.</div>
+                                
+                                <!-- Client-side preview container -->
+                                <div id="uploadPreviewContainer" class="upload-preview-container d-flex align-items-center gap-3">
+                                    <img id="uploadPreviewImg" class="upload-preview-thumb" src="" alt="Photo preview">
+                                    <div class="flex-grow-1">
+                                        <div id="uploadFileName" class="fw-bold small text-dark"></div>
+                                        <div id="uploadFileSize" class="text-muted small"></div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger mt-1 py-0 px-2" id="uploadRemoveBtn">
+                                            <i class="bi bi-trash me-1"></i> Remove Image
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Pinpoint on Map -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                <span class="badge bg-primary rounded-circle">4</span> Pinpoint Incident Location
+                            </h5>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnGeolocate">
+                                <i class="bi bi-crosshair me-1"></i> Use My Current Location
+                            </button>
+                        </div>
+                        <p class="text-secondary small mb-2">Click anywhere on the map to place the exact pin for the utility linemen truck.</p>
+
+                        <!-- Hidden lat/lng inputs -->
+                        <input type="hidden" name="lat" id="formLat">
+                        <input type="hidden" name="lng" id="formLng">
+
+                        <div id="pickerMap" style="height: 320px;" class="rounded-3 border"></div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                            <div>Selected Coordinates: <span id="coordsDisplay" class="font-mono text-dark fw-bold">Click map to set</span></div>
+                            <span class="text-success"><i class="bi bi-check2-circle me-1"></i>Lineman GPS enabled</span>
+                        </div>
+                    </div>
+
+                    <!-- Safety Warning Box -->
+                    <div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-2 mb-4">
+                        <i class="bi bi-shield-exclamation fs-4 text-warning"></i>
+                        <div class="small">
+                            <strong>Safety Warning:</strong> Never approach fallen electrical conductors, dangling wires, or sparking transformers. Maintain a minimum safe distance of <strong>35 feet (10 meters)</strong> at all times.
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning btn-lg fw-bold py-3 shadow">
+                            <i class="bi bi-send-fill me-2"></i> Submit Outage Report & Generate Ticket
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let pickerMap = null;
+    let selectedMarker = null;
+
+    const latInput = document.getElementById("formLat");
+    const lngInput = document.getElementById("formLng");
+    const coordsDisplay = document.getElementById("coordsDisplay");
+    const localitySelect = document.getElementById("locality_id");
+    const substationText = document.getElementById("substationText");
+
+    const defaultLat = 12.9716;
+    const defaultLng = 77.6200;
+
+    // Initialize Map
+    pickerMap = L.map("pickerMap").setView([defaultLat, defaultLng], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(pickerMap);
+
+    function updateMarker(lat, lng) {
+        if (!selectedMarker) {
+            selectedMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+            selectedMarker.on("dragend", function (e) {
+                const pos = e.target.getLatLng();
+                setCoords(pos.lat, pos.lng);
+            });
+        } else {
+            selectedMarker.setLatLng([lat, lng]);
+        }
+        setCoords(lat, lng);
+    }
+
+    function setCoords(lat, lng) {
+        const roundedLat = lat.toFixed(5);
+        const roundedLng = lng.toFixed(5);
+        latInput.value = roundedLat;
+        lngInput.value = roundedLng;
+        coordsDisplay.textContent = `${roundedLat}, ${roundedLng}`;
+    }
+
+    // Map Click Listener
+    pickerMap.on("click", function (e) {
+        updateMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Locality Change Listener
+    localitySelect.addEventListener("change", function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const lat = parseFloat(selectedOption.getAttribute("data-lat"));
+        const lng = parseFloat(selectedOption.getAttribute("data-lng"));
+        const substation = selectedOption.getAttribute("data-substation");
+
+        if (substation) {
+            substationText.textContent = substation;
+        }
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+            pickerMap.setView([lat, lng], 14);
+            updateMarker(lat, lng);
+        }
+    });
+
+    // Geolocation Button
+    document.getElementById("btnGeolocate").addEventListener("click", function () {
+        if (navigator.geolocation) {
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Locating...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    pickerMap.setView([lat, lng], 15);
+                    updateMarker(lat, lng);
+                    this.innerHTML = '<i class="bi bi-check2 me-1"></i> Location Acquired';
+                },
+                (err) => {
+                    alert("Could not detect location. Please click on the map to place pin manually.");
+                    this.innerHTML = '<i class="bi bi-crosshair me-1"></i> Use My Current Location';
+                }
+            );
+        } else {
+            alert("Geolocation is not supported by your browser.");
+        }
+    });
+});
+</script>
+{% endblock %}

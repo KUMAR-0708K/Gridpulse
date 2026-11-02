@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Lineman Crews & Field Fleet Management - GridPulse{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-truck text-primary"></i> Field Lineman Crews & Fleet
+            </h2>
+            <p class="text-secondary small mb-0">Manage emergency response vehicles, on-duty supervisors, and deployment status.</p>
+        </div>
+
+        <button type="button" class="btn btn-primary fw-semibold btn-sm" data-bs-toggle="modal" data-bs-target="#addCrewModal">
+            <i class="bi bi-plus-circle me-1"></i> Add New Crew Unit
+        </button>
+    </div>
+
+    <!-- Crew Cards Grid -->
+    <div class="row g-3 mb-4">
+        {% for c in crews %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 card-glass border-0 shadow-sm p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="fw-bold text-dark mb-0">{{ c.crew_name }}</h5>
+                        <span class="badge {% if c.current_status == 'AVAILABLE' %}bg-success{% elif c.current_status == 'DISPATCHED' %}bg-primary{% elif c.current_status == 'ON_SITE' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ c.current_status }}
+                        </span>
+                    </div>
+
+                    <div class="small text-secondary mb-3">
+                        <div><i class="bi bi-person-badge text-primary me-1"></i> Lead: <strong>{{ c.lead_lineman }}</strong></div>
+                        <div><i class="bi bi-telephone text-success me-1"></i> Phone: {{ c.phone }}</div>
+                        <div><i class="bi bi-truck text-muted me-1"></i> Vehicle: <span class="font-mono">{{ c.vehicle_no or 'Standard Ladder Van' }}</span></div>
+                    </div>
+
+                    <div class="bg-light p-2 rounded-2 mb-3 small d-flex justify-content-between">
+                        <span>Active Assigned Tickets:</span>
+                        <strong class="{% if c.assigned_active_tickets > 0 %}text-danger{% else %}text-muted{% endif %}">
+                            {{ c.assigned_active_tickets }}
+                        </strong>
+                    </div>
+
+                    <!-- Quick Status Update Form -->
+                    <form action="{{ url_for('admin_crews') }}" method="POST" class="mt-auto pt-2 border-top d-flex gap-2">
+                        <input type="hidden" name="action" value="update_status">
+                        <input type="hidden" name="crew_id" value="{{ c.id }}">
+                        <select name="current_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="AVAILABLE" {% if c.current_status == 'AVAILABLE' %}selected{% endif %}>AVAILABLE</option>
+                            <option value="DISPATCHED" {% if c.current_status == 'DISPATCHED' %}selected{% endif %}>DISPATCHED</option>
+                            <option value="ON_SITE" {% if c.current_status == 'ON_SITE' %}selected{% endif %}>ON_SITE</option>
+                            <option value="OFF_DUTY" {% if c.current_status == 'OFF_DUTY' %}selected{% endif %}>OFF_DUTY</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Add Crew Modal -->
+<div class="modal fade" id="addCrewModal" tabindex="-1" aria-labelledby="addCrewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="addCrewModalLabel"><i class="bi bi-truck text-primary me-2"></i>Register Field Crew</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin_crews') }}" method="POST">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Crew Unit Name <span class="text-danger">*</span></label>
+                        <input type="text" name="crew_name" class="form-control" placeholder="e.g. South Zone Fast Response Crew 2" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lead Lineman / Supervisor <span class="text-danger">*</span></label>
+                        <input type="text" name="lead_lineman" class="form-control" placeholder="e.g. Rajesh Patil (Senior Lineman)" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contact Mobile Phone <span class="text-danger">*</span></label>
+                        <input type="tel" name="phone" class="form-control" placeholder="e.g. +91 94481 22999" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Vehicle Number / Registration</label>
+                        <input type="text" name="vehicle_no" class="form-control font-mono" placeholder="e.g. KA-01-EA-5566">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Register Line Crew</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

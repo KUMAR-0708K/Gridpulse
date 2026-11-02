@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Grid Analytics & Reliability Telemetry - GridPulse{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 mt-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-graph-up text-primary"></i> Locality Power Grid Analytics & Reliability
+            </h2>
+            <p class="text-secondary small mb-0">Telemetry on recurring faults, transformer load failure rates, and restoration velocity.</p>
+        </div>
+
+        <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success fw-semibold btn-sm">
+            <i class="bi bi-download me-1"></i> Export Comprehensive CSV
+        </a>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row g-4 mb-4">
+        <!-- Outages by Locality -->
+        <div class="col-lg-8">
+            <div class="card card-glass shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-dark mb-1"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Outage Incident Frequency by Locality</h5>
+                <p class="text-secondary small mb-3">Total historical & active outages logged across municipal sectors.</p>
+                <div>
+                    <canvas id="localityChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outage Severity Breakdown -->
+        <div class="col-lg-4">
+            <div class="card card-glass shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-dark mb-1"><i class="bi bi-pie-chart-fill text-danger me-2"></i>Severity Distribution</h5>
+                <p class="text-secondary small mb-3">Hazard priority levels of registered incidents.</p>
+                <div class="d-flex justify-content-center align-items-center" style="max-height: 260px;">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row g-4 mb-4">
+        <!-- Breakdown by Incident Type -->
+        <div class="col-lg-6">
+            <div class="card card-glass shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-dark mb-1"><i class="bi bi-diagram-3-fill text-warning me-2"></i>Failure Causes Breakdown</h5>
+                <p class="text-secondary small mb-3">Primary root causes of power cuts reported by citizens & linemen.</p>
+                <div>
+                    <canvas id="typeChart" height="140"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outage Lifecycle Resolution Status -->
+        <div class="col-lg-6">
+            <div class="card card-glass shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-dark mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Dispatch Ticket Funnel</h5>
+                <p class="text-secondary small mb-3">Progression from citizen report to full power restoration.</p>
+                <div>
+                    <canvas id="statusChart" height="140"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // 1. Locality Bar Chart
+    const localityData = {
+        labels: [{% for item in locality_stats %}'{{ item.name }}',{% endfor %}],
+        counts: [{% for item in locality_stats %}{{ item.count }},{% endfor %}]
+    };
+
+    const ctxLocality = document.getElementById('localityChart').getContext('2d');
+    new Chart(ctxLocality, {
+        type: 'bar',
+        data: {
+            labels: localityData.labels,
+            datasets: [{
+                label: 'Outage Count',
+                data: localityData.counts,
+                backgroundColor: 'rgba(13, 110, 253, 0.75)',
+                borderColor: '#0d6efd',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+
+    // 2. Severity Doughnut Chart
+    const severityData = {
+        labels: [{% for item in severity_stats %}'{{ item.severity }}',{% endfor %}],
+        counts: [{% for item in severity_stats %}{{ item.count }},{% endfor %}]
+    };
+
+    const ctxSeverity = document.getElementById('severityChart').getContext('2d');
+    new Chart(ctxSeverity, {
+        type: 'doughnut',
+        data: {
+            labels: severityData.labels,
+            datasets: [{
+                data: severityData.counts,
+                backgroundColor: [
+                    '#ef4444', // Critical
+                    '#f97316', // High
+                    '#facc15', // Medium
+                    '#10b981'  // Low
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 3. Incident Type Horizontal Bar Chart
+    const typeData = {
+        labels: [{% for item in type_stats %}'{{ item.outage_type }}',{% endfor %}],
+        counts: [{% for item in type_stats %}{{ item.count }},{% endfor %}]
+    };
+
+    const ctxType = document.getElementById('typeChart').getContext('2d');
+    new Chart(ctxType, {
+        type: 'bar',
+        data: {
+            labels: typeData.labels,
+            datasets: [{
+                label: 'Incidents Reported',
+                data: typeData.counts,
+                backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                borderColor: '#d97706',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+
+    // 4. Status Funnel
+    const statusData = {
+        labels: [{% for item in status_stats %}'{{ item.status.replace("_", " ") }}',{% endfor %}],
+        counts: [{% for item in status_stats %}{{ item.count }},{% endfor %}]
+    };
+
+    const ctxStatus = document.getElementById('statusChart').getContext('2d');
+    new Chart(ctxStatus, {
+        type: 'bar',
+        data: {
+            labels: statusData.labels,
+            datasets: [{
+                label: 'Tickets',
+                data: statusData.counts,
+                backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                borderColor: '#059669',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

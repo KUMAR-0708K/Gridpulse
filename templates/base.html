@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PowerWatch - Locality Power Outage Reporting & Tracking Portal{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- API Key Meta & Global Client Config -->
+    <meta name="gridpulse-api-key" content="{{ default_api_key }}">
+    <script>
+        window.GRIDPULSE_API_KEY = "{{ default_api_key }}";
+    </script>
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+    <!-- Emergency Announcement Banner Ticker -->
+    {% if active_announcements %}
+    <div class="emergency-ticker py-2 px-3">
+        <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger pulse-dot d-flex align-items-center gap-1">
+                    <i class="bi bi-broadcast"></i> LIVE ADVISORY
+                </span>
+                <div class="ticker-content text-dark small fw-medium">
+                    {% for ann in active_announcements %}
+                        <span class="me-4"><strong class="text-danger">{{ ann.title }}:</strong> {{ ann.message }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <a href="{{ url_for('safety') }}" class="btn btn-outline-danger btn-sm py-0 px-2 fw-semibold" style="font-size: 0.75rem;">
+                Safety Rules <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark-grid sticky-top shadow-sm py-2">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+                <div class="brand-icon-box">
+                    <i class="bi bi-lightning-charge-fill text-warning"></i>
+                </div>
+                <div>
+                    <span class="fw-bold tracking-tight text-white fs-5">Grid<span class="text-warning">Pulse</span></span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 text-uppercase" style="font-size: 0.65rem;">Locality Power Portal</span>
+                </div>
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-lg-1">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active text-warning fw-semibold{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-map me-1"></i> Live Outage Map
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'track_outage' %}active text-warning fw-semibold{% endif %}" href="{{ url_for('track_outage') }}">
+                            <i class="bi bi-search me-1"></i> Track Ticket
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'localities_overview' %}active text-warning fw-semibold{% endif %}" href="{{ url_for('localities_overview') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i> Locality Health
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'safety' %}active text-warning fw-semibold{% endif %}" href="{{ url_for('safety') }}">
+                            <i class="bi bi-shield-exclamation me-1"></i> Safety & Helplines
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Theme Selector Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm text-light dropdown-toggle d-flex align-items-center gap-1" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Change Theme Mode">
+                            <i class="bi bi-circle-half text-warning"></i> <span class="d-none d-md-inline">Theme</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="themeDropdown">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-toggle="light">
+                                    <i class="bi bi-sun-fill text-warning"></i> Light Mode
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-toggle="dark">
+                                    <i class="bi bi-moon-stars-fill text-info"></i> Dark Mode (OLED)
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-toggle="emergency">
+                                    <i class="bi bi-exclamation-triangle-fill text-danger"></i> Emergency High Contrast
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <a href="{{ url_for('report_outage') }}" class="btn btn-warning text-dark fw-bold btn-report shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Report Outage
+                    </a>
+
+                    {% if session.get('admin_logged_in') %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle fw-semibold d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-speedometer2 text-info"></i> Dispatcher Desk
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li class="dropdown-header small text-muted">Utility Board Operations</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-card-checklist me-2"></i>Outage Tickets</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_crews') }}"><i class="bi bi-truck me-2"></i>Line Crews Dispatch</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_maintenance') }}"><i class="bi bi-calendar-event me-2"></i>Planned Outages</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_announcements') }}"><i class="bi bi-megaphone me-2"></i>Public Broadcasts</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_analytics') }}"><i class="bi bi-graph-up me-2"></i>Grid Analytics</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_api_keys') }}"><i class="bi bi-key-fill me-2 text-warning"></i>API Keys & Integrations</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('admin_logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary text-light btn-sm" title="Utility Board Staff Portal">
+                            <i class="bi bi-lock me-1"></i> Utility Desk
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flashed System Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 d-flex align-items-center gap-2" role="alert">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                        {% elif category == 'danger' %}
+                            <i class="bi bi-exclamation-octagon-fill fs-5 text-danger"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+                        {% endif %}
+                        <div class="flex-grow-1">{{ message }}</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Dynamic Content Block -->
+    <main class="flex-grow-1 mb-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Floating Quick Actions Speed-Dial -->
+    <div class="floating-actions-bar">
+        <a href="tel:1912" class="btn-speed-dial btn-dial-call" title="Emergency Utility Helpline 1912">
+            <i class="bi bi-telephone-fill"></i>
+        </a>
+        <a href="{{ url_for('report_outage') }}" class="btn-speed-dial btn-dial-report" title="Report Power Outage">
+            <i class="bi bi-lightning-charge-fill"></i>
+        </a>
+        <button type="button" class="btn-speed-dial btn-dial-theme" id="btnThemeCycle" title="Cycle Theme Mode">
+            <i class="bi bi-circle-half"></i>
+        </button>
+        <button type="button" class="btn-speed-dial bg-dark text-white border-0" id="btnScrollTop" title="Scroll to Top">
+            <i class="bi bi-arrow-up"></i>
+        </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light pt-5 pb-4 mt-auto border-top border-secondary-subtle">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="brand-icon-box bg-warning text-dark p-2 rounded">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <span class="fs-5 fw-bold text-white">GridPulse Locality Hub</span>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        Official localized electrical power outage reporting, live GIS mapping, and lineman dispatch monitoring system for municipal residents and local utility boards.
+                    </p>
+                    <div class="d-flex gap-2 text-warning small">
+                        <span><i class="bi bi-clock-history me-1"></i>24x7 Control Room Active</span>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="text-uppercase fw-bold text-white-50 small mb-3">Residents</h6>
+                    <ul class="list-unstyled small d-flex flex-column gap-2 text-secondary">
+                        <li><a href="{{ url_for('report_outage') }}" class="text-decoration-none text-light-50 hover-warning"><i class="bi bi-chevron-right me-1"></i>Report Outage</a></li>
+                        <li><a href="{{ url_for('track_outage') }}" class="text-decoration-none text-light-50 hover-warning"><i class="bi bi-chevron-right me-1"></i>Track Ticket</a></li>
+                        <li><a href="{{ url_for('localities_overview') }}" class="text-decoration-none text-light-50 hover-warning"><i class="bi bi-chevron-right me-1"></i>Locality Grid Health</a></li>
+                        <li><a href="{{ url_for('safety') }}" class="text-decoration-none text-light-50 hover-warning"><i class="bi bi-chevron-right me-1"></i>Electrical Hazard Safety</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="text-uppercase fw-bold text-white-50 small mb-3">Emergency Helplines</h6>
+                    <ul class="list-unstyled small d-flex flex-column gap-2 text-secondary">
+                        <li class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger">24x7</span>
+                            <span>Utility Emergency: <strong>1912</strong> (Toll Free)</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark">Fire</span>
+                            <span>Fire & Electrical Spark: <strong>101</strong></span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <span class="badge bg-info text-dark">SMS</span>
+                            <span>WhatsApp Grievance: <strong>+91 94481 19120</strong></span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary">Desk</span>
+                            <span>Chief Dispatcher: <strong>080-2287-3333</strong></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="text-uppercase fw-bold text-white-50 small mb-3">Utility Operations</h6>
+                    <p class="text-secondary small mb-3">
+                        Substation operators, assistant executive engineers, and field linemen can access the dispatch console.
+                    </p>
+                    <a href="{{ url_for('admin_login') }}" class="btn btn-outline-warning btn-sm w-100 fw-semibold">
+                        <i class="bi bi-shield-lock me-1"></i> Utility Desk Login
+                    </a>
+                </div>
+            </div>
+
+            <hr class="border-secondary my-4">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center small text-secondary">
+                <div>
+                    &copy; {{ current_year }} Municipal Electricity Supply Board &bull; Local Area Grid Management. All Rights Reserved.
+                </div>
+                <div class="d-flex gap-3 mt-2 mt-sm-0">
+                    <span class="text-success"><i class="bi bi-shield-check me-1"></i>Certified Citizen Service Portal</span>
+                    <span>v2.4.0</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Custom Common JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
