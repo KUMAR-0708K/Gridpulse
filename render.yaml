@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: gridpulse
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GRIDPULSE_API_KEY
+        value: gp_live_scada_demo_key_2026
+
