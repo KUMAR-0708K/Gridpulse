@@ -198,19 +198,14 @@
                                 {{ t.reported_at }}
                             </td>
                             <td class="text-end">
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
-                                            data-ticket-id="{{ t.id }}"
-                                            data-ticket-no="{{ t.ticket_no }}"
-                                            data-status="{{ t.status }}"
-                                            data-crew-id="{{ t.assigned_crew_id or '' }}"
-                                            data-etr="{{ t.estimated_restoration or '' }}">
-                                        <i class="bi bi-pencil-square me-1"></i> Update
-                                    </button>
-                                    <a href="{{ url_for('track_outage', ticket=t.ticket_no) }}" target="_blank" class="btn btn-outline-secondary" title="View Public Citizen View">
-                                        <i class="bi bi-box-arrow-up-right"></i>
-                                    </a>
-                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                        data-ticket-id="{{ t.id }}"
+                                        data-ticket-no="{{ t.ticket_no }}"
+                                        data-status="{{ t.status }}"
+                                        data-crew-id="{{ t.assigned_crew_id or '' }}"
+                                        data-etr="{{ t.estimated_restoration or '' }}">
+                                    <i class="bi bi-pencil-square me-1"></i> Update
+                                </button>
                             </td>
                         </tr>
                     {% else %}
